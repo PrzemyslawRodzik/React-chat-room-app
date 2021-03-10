@@ -77,3 +77,7 @@ input::placeholder {
   width: 942px;
   height: 562px;
 }
+
+.activ:hover {
+  background-color: #007bff;
+}

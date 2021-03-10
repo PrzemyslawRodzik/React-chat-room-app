@@ -3,6 +3,7 @@ import { dphotoURL } from "./assets/img/defaultAvatar";
 import { auth, firestore } from "./firebase";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrashAlt } from "@fortawesome/free-solid-svg-icons";
+import { motion } from "framer-motion";
 
 const ChatMessage = ({ id, text, uid, photoURL, createdAt }) => {
   const messageclass =
@@ -24,7 +25,12 @@ const ChatMessage = ({ id, text, uid, photoURL, createdAt }) => {
 
   if (messageclass === "myMessage") {
     return (
-      <div className="media w-50 ml-auto mb-3">
+      <motion.div
+        className="media w-50 ml-auto mb-3"
+        layout
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         <div className="media-body divMessage">
           <div className="bg-primary rounded py-2 px-3 mb-2">
             <p className="text-small mb-0 text-white">{text}</p>
@@ -42,7 +48,7 @@ const ChatMessage = ({ id, text, uid, photoURL, createdAt }) => {
             {time + " | " + createdAt?.toDate().toDateString()}
           </p>
         </div>
-      </div>
+      </motion.div>
     );
   } else if (messageclass === "notMyMessage") {
     return (

@@ -7,15 +7,26 @@ import ChatMessage from "./ChatMessage";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
 
-export const ChatRoom = () => {
+export const ChatRoom = (sentTo) => {
   const spanRef = React.useRef();
   const messagesReference = firestore.collection("messages");
-  const query = messagesReference.orderBy("createdAt").limit(50);
-  const [messages, isLoading, error] = useCollectionData(query, {
+  const usersReference = firestore.collection("users");
+  const publicQueryMessages = messagesReference.orderBy("createdAt");
+
+  const queryUsers = usersReference
+    .where("uid", "!=", auth.currentUser.uid)
+    .limit(5);
+
+  const [query, setQuery] = React.useState(publicQueryMessages);
+  const [messages, isLoading, isMessagesError] = useCollectionData(query, {
+    idField: "id",
+  });
+  const [users, isUsersLoading, isUsersError] = useCollectionData(queryUsers, {
     idField: "id",
   });
 
   const [formValue, setFormValue] = React.useState("");
+  const [chatRoomType, setChatRoomType] = React.useState("");
 
   function updateScroll() {
     spanRef.current.scrollIntoView({ behavior: "smooth" });
@@ -31,12 +42,24 @@ export const ChatRoom = () => {
       return;
     }
     const { uid, photoURL } = auth.currentUser;
-    await messagesReference.add({
-      text: formValue,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      photoURL,
-      uid,
-    });
+    if (chatRoomType !== "public") {
+      let sentTo = chatRoomType;
+      await messagesReference.add({
+        text: formValue,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        photoURL,
+        sentTo,
+        uid,
+      });
+    } else {
+      await messagesReference.add({
+        text: formValue,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        photoURL,
+        type: "public",
+        uid,
+      });
+    }
 
     setFormValue("");
     updateScroll();
@@ -46,6 +69,11 @@ export const ChatRoom = () => {
       handleMessageSubmit(event);
     }
   };
+
+  const openChatRoom = (uid) => {
+    setChatRoomType(uid);
+  };
+
   if (isLoading) {
     return <div className="loadingDiv">Loading ...</div>;
   } else if (!isLoading) {
@@ -67,205 +95,64 @@ export const ChatRoom = () => {
 
             <div className="messages-box">
               <div className="list-group rounded-0">
-                <a className="list-group-item list-group-item-action active text-white rounded-0">
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">25 Dec</small>
-                      </div>
-                      <p className="font-italic mb-0 text-small">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing
-                        elit, sed do eiusmod tempor incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">14 Dec</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        Lorem ipsum dolor sit amet, consectetur. incididunt ut
-                        labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">9 Nov</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        consectetur adipisicing elit, sed do eiusmod tempor
-                        incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">18 Oct</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing
-                        elit, sed do eiusmod tempor incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">17 Oct</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        consectetur adipisicing elit, sed do eiusmod tempor
-                        incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">2 Sep</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        Quis nostrud exercitation ullamco laboris nisi ut
-                        aliquip ex ea commodo consequat.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-1">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">30 Aug</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing
-                        elit, sed do eiusmod tempor incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
-
-                <a
-                  href="#"
-                  className="list-group-item list-group-item-action list-group-item-light rounded-0"
-                >
-                  <div className="media">
-                    <img
-                      src="https://res.cloudinary.com/mhmd/image/upload/v1564960395/avatar_usae7z.svg"
-                      alt="user"
-                      width="50"
-                      className="rounded-circle"
-                    />
-                    <div className="media-body ml-4">
-                      <div className="d-flex align-items-center justify-content-between mb-3">
-                        <h6 className="mb-0">Jason Doe</h6>
-                        <small className="small font-weight-bold">21 Aug</small>
-                      </div>
-                      <p className="font-italic text-muted mb-0 text-small">
-                        Lorem ipsum dolor sit amet, consectetur adipisicing
-                        elit, sed do eiusmod tempor incididunt ut labore.
-                      </p>
-                    </div>
-                  </div>
-                </a>
+                {users &&
+                  users.map((x) => {
+                    return (
+                      <a
+                        key={x.id}
+                        className="list-group-item list-group-item-action activ text-black rounded-0"
+                        onClick={() => openChatRoom(x.uid)}
+                      >
+                        <div className="media">
+                          <img
+                            src={x.photoURL}
+                            alt="user"
+                            width="50"
+                            className="rounded-circle"
+                          />
+                          <div className="media-body ml-4">
+                            <div className="d-flex align-items-center justify-content-between mb-1">
+                              <h6 className="mb-0">{x.displayName}</h6>
+                              <small className="small font-weight-bold">
+                                25 Dec
+                              </small>
+                            </div>
+                            <p className="font-italic mb-0 text-small">
+                              Lorem ipsum dolor sit amet, consectetur
+                              adipisicing elit, sed do eiusmod tempor incididunt
+                              ut labore.
+                            </p>
+                          </div>
+                        </div>
+                      </a>
+                    );
+                  })}
               </div>
             </div>
           </div>
         </div>
         <div className="col-7 px-0">
           <div className="px-4 py-5 chat-box bg-white">
-            {messages &&
-              messages.map((message) => {
-                return <ChatMessage key={message.id} {...message} />;
-              })}
-
+            {console.log(chatRoomType)}
+            {chatRoomType === ""
+              ? messages &&
+                messages
+                  .filter((x) => x.type === "public")
+                  .map((message) => {
+                    return <ChatMessage key={message.id} {...message} />;
+                  })
+              : messages &&
+                messages
+                  .filter(
+                    (x) =>
+                      (x.sentTo === chatRoomType &&
+                        x.uid === auth.currentUser.uid) ||
+                      (x.sentTo === auth.currentUser.uid &&
+                        x.uid === chatRoomType)
+                  )
+                  .map((message) => {
+                    return <ChatMessage key={message.id} {...message} />;
+                  })}
             <span id="spanScroll" ref={spanRef}></span>
           </div>
 
@@ -321,9 +208,46 @@ export const Logout = () => {
 };
 
 export const Login = () => {
+  const addUser = (userAuth) => {
+    const { email, displayName, photoURL, uid } = userAuth;
+
+    firestore
+      .collection("users")
+      .where("uid", "==", uid)
+      .limit("1")
+      .get()
+      .then((querySnapshot) => {
+        if (querySnapshot.empty) {
+          console.log("No such document!");
+
+          firestore.collection("users").add({
+            email,
+            displayName,
+            photoURL,
+            uid,
+          });
+        } else {
+          querySnapshot.forEach((doc) => {
+            if (doc.exists) {
+              // doc.data() is never undefined for query doc snapshots
+              // console.log(doc.id, " => ", doc.data());
+            }
+          });
+        }
+      })
+      .catch((error) => {
+        console.log("Error getting documents: ", error);
+      });
+  };
+
   const signInWithGoogle = () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider);
+    firebase
+      .auth()
+      .signInWithPopup(provider)
+      .then((result) => {
+        addUser(result.user);
+      });
   };
 
   return (
