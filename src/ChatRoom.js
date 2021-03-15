@@ -1,23 +1,24 @@
 import React from "react";
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import firebase from "firebase/app";
 import { auth, firestore } from "./firebase";
 import { useCollectionData } from "react-firebase-hooks/firestore";
 import ChatMessage from "./ChatMessage";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faPaperPlane, faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import _ from "lodash";
+import UserPanel from "./UserPanel";
 
-export const ChatRoom = (sentTo) => {
+export const ChatRoom = () => {
   const spanRef = React.useRef();
+
   const messagesReference = firestore.collection("messages");
   const usersReference = firestore.collection("users");
-  const publicQueryMessages = messagesReference.orderBy("createdAt");
+  const queryMessages = messagesReference.orderBy("createdAt");
 
-  const queryUsers = usersReference
-    .where("uid", "!=", auth.currentUser.uid)
-    .limit(5);
+  const queryUsers = usersReference.where("uid", "!=", auth.currentUser.uid);
 
-  const [query, setQuery] = React.useState(publicQueryMessages);
+  const [query, setQuery] = React.useState(queryMessages);
   const [messages, isLoading, isMessagesError] = useCollectionData(query, {
     idField: "id",
   });
@@ -26,7 +27,11 @@ export const ChatRoom = (sentTo) => {
   });
 
   const [formValue, setFormValue] = React.useState("");
-  const [chatRoomType, setChatRoomType] = React.useState("");
+  const [chatRoomType, setChatRoomType] = React.useState("public");
+
+  const setRoomType = (uid = "public") => {
+    setChatRoomType(uid);
+  };
 
   function updateScroll() {
     spanRef.current.scrollIntoView({ behavior: "smooth" });
@@ -42,21 +47,22 @@ export const ChatRoom = (sentTo) => {
       return;
     }
     const { uid, photoURL } = auth.currentUser;
-    if (chatRoomType !== "public") {
+
+    if (chatRoomType === "public") {
+      await messagesReference.add({
+        text: formValue,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        photoURL,
+        type: "public",
+        uid,
+      });
+    } else {
       let sentTo = chatRoomType;
       await messagesReference.add({
         text: formValue,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         photoURL,
         sentTo,
-        uid,
-      });
-    } else {
-      await messagesReference.add({
-        text: formValue,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        photoURL,
-        type: "public",
         uid,
       });
     }
@@ -68,10 +74,6 @@ export const ChatRoom = (sentTo) => {
     if (event.keyCode === 13) {
       handleMessageSubmit(event);
     }
-  };
-
-  const openChatRoom = (uid) => {
-    setChatRoomType(uid);
   };
 
   if (isLoading) {
@@ -89,7 +91,14 @@ export const ChatRoom = (sentTo) => {
               <h6 className="mb-0"></h6>
 
               <p className="h5 ml-10 py-1 logoutClass">
-                {auth.currentUser && <Logout />}
+                <button
+                  className="wallbtn"
+                  type="button"
+                  onClick={() => setRoomType()}
+                >
+                  Wall
+                </button>{" "}
+                | {auth.currentUser && <Logout />}
               </p>
             </div>
 
@@ -98,33 +107,13 @@ export const ChatRoom = (sentTo) => {
                 {users &&
                   users.map((x) => {
                     return (
-                      <a
-                        key={x.id}
-                        className="list-group-item list-group-item-action activ text-black rounded-0"
-                        onClick={() => openChatRoom(x.uid)}
-                      >
-                        <div className="media">
-                          <img
-                            src={x.photoURL}
-                            alt="user"
-                            width="50"
-                            className="rounded-circle"
-                          />
-                          <div className="media-body ml-4">
-                            <div className="d-flex align-items-center justify-content-between mb-1">
-                              <h6 className="mb-0">{x.displayName}</h6>
-                              <small className="small font-weight-bold">
-                                25 Dec
-                              </small>
-                            </div>
-                            <p className="font-italic mb-0 text-small">
-                              Lorem ipsum dolor sit amet, consectetur
-                              adipisicing elit, sed do eiusmod tempor incididunt
-                              ut labore.
-                            </p>
-                          </div>
-                        </div>
-                      </a>
+                      <UserPanel
+                        key={x.uid}
+                        user={x}
+                        setRoomType={setRoomType}
+                        authUser={auth.currentUser}
+                        messages={messages}
+                      />
                     );
                   })}
               </div>
@@ -132,9 +121,11 @@ export const ChatRoom = (sentTo) => {
           </div>
         </div>
         <div className="col-7 px-0">
+          <div className="roomIndicator">
+            {chatRoomType === "public" ? "Wall" : ""}
+          </div>
           <div className="px-4 py-5 chat-box bg-white">
-            {console.log(chatRoomType)}
-            {chatRoomType === ""
+            {chatRoomType === "public"
               ? messages &&
                 messages
                   .filter((x) => x.type === "public")
@@ -229,8 +220,14 @@ export const Login = () => {
         } else {
           querySnapshot.forEach((doc) => {
             if (doc.exists) {
-              // doc.data() is never undefined for query doc snapshots
-              // console.log(doc.id, " => ", doc.data());
+              if (!_.isEqual(userAuth, doc.data())) {
+                firestore.collection("users").doc(doc.id).update({
+                  email,
+                  displayName,
+                  photoURL,
+                  uid,
+                });
+              }
             }
           });
         }

@@ -44,6 +44,7 @@ input::placeholder {
   right: 0px;
   top: 10px;
   z-index: 1;
+  cursor: pointer;
 }
 .loadingDiv {
   text-align: center;
@@ -69,6 +70,10 @@ input::placeholder {
   right: 4px;
   top: -3px;
 }
+.roomIndicator {
+  position: absolute;
+  right: 8px;
+}
 .thrashIcon {
   font-size: small;
 }
@@ -79,5 +84,19 @@ input::placeholder {
 }
 
 .activ:hover {
+  background-color: #007bff;
+}
+.dateUserPanel {
+  font-size: xx-small;
+}
+.wallClass {
+  margin-right: 10%;
+}
+.wallbtn {
+  border: none;
+  padding: 0;
+  background: none;
+}
+.activeWall {
   background-color: #007bff;
 }
